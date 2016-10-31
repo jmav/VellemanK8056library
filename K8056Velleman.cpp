@@ -1,11 +1,14 @@
 /*	K8056Velleman.ccp
 
-	Programmer		:	A.S. Tilanus (alban.tilanus[at]gmail.com)
-	Company			:	reptile-addict.nl
+	Programmer		:	A.S. Tilanus | reptile-addict.nl (alban.tilanus[at]gmail.com)
+					:	Jure Mav | Trilane.si (jure.mav[at]gmail.com)
+
 	Version			:	20130421 First release
 						20130422 Made some changes as discussed in: http://arduino.cc/forum/index.php/topic,161877.msg1211201.html#msg1211201
-	
-	Description		:	Arduino library to control the Velleman K8056 8-channel relay card thru RS232
+						20130423 byteWrite() Allows to control the status of all relays in one instruction, by sending a
+						byte containing the relay status for each relay. (MSB : relay1, LSB : relay8)
+
+	Description		:	Arduino library to control the Velleman K8056 8-channel relay card trough RS232
 						http://www.reptile-addict.nl/arduino/?page_id=209
 
 	Keywords		:	Arduino; RS232; Velleman; K8056;
@@ -22,7 +25,7 @@
 K8056Velleman::K8056Velleman() {
 }
 
-byte SerialID; // used to identify the nessecary Serial connection
+byte SerialID; // used to identify the necessary Serial connection
 
 /// Open the Serial connection for the RS232 commands between the Arduino and the K8056.
 /// Optionally a SerialAddress could be supplied if a Serial connection other than the default is desired.
@@ -41,7 +44,7 @@ void K8056Velleman::begin(byte SerialAddress) {
 	int BaudRate = 2400;
 
 	// TODO: Check for other boards that have more than 1 serial connection.
-	#if defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__) 
+	#if defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
 		switch (SerialAddress) {
 		case 0:
 			Serial.begin(BaudRate);
@@ -76,19 +79,19 @@ void K8056Velleman::begin(byte SerialAddress) {
 
 
 void K8056Velleman::ON(byte CardAddress, byte Relay) {
-	RS232Instruction(CardAddress,0x53,Relay);
+	RS232Instruction(CardAddress,0x53,Relay,false); // Instruction S
 }
 
 void K8056Velleman::OFF(byte CardAddress, byte Relay) {
-	RS232Instruction(CardAddress,0x43,Relay);
+	RS232Instruction(CardAddress,0x43,Relay,false); // Instruction C
 }
 
 void K8056Velleman::EmergencyStop() {
-	RS232Instruction(2,0x45,1); // any cardaddress will do
+	RS232Instruction(2,0x45,1,false); // any cardaddress will do
 }
 
 void K8056Velleman::Toggle(byte CardAddress, byte Relay) {
-	RS232Instruction(CardAddress,0x54,Relay);
+	RS232Instruction(CardAddress,0x54,Relay,false); // Instruction T
 }
 
 void K8056Velleman::digitalWrite(byte CardAddress, byte Relay, byte Status) {
@@ -100,8 +103,11 @@ void K8056Velleman::digitalWrite(byte CardAddress, byte Relay, byte Status) {
 	}
 }
 
-/// Private functions
+void K8056Velleman::byteWrite(byte CardAddress, byte Relay) {
+	RS232Instruction(CardAddress,0x42,Relay,true); // Instruction B
+}
 
+/// Private functions
 
 byte K8056Velleman::CheckSum(byte Address, byte Instruction, byte Relay) {
 	byte CR = 0x0D; // Carriage return
@@ -111,17 +117,19 @@ byte K8056Velleman::CheckSum(byte Address, byte Instruction, byte Relay) {
 }
 
 
-void K8056Velleman::RS232Instruction(byte Address ,byte Instruction, byte Relay) {
+void K8056Velleman::RS232Instruction(byte Address ,byte Instruction, byte Relay, byte isBinary) {
 
 	byte CR = 0x0D; // Carrtiage Return
-	
-	Relay = 48 + Relay; // '1' = dec 48 + 1 & '2' = dec 48 + 2 etc... ASCII ;)
+
+	if (isBinary == false) {
+		Relay = 48 + Relay; // '1' = dec 48 + 1 & '2' = dec 48 + 2 etc... ASCII ;)
+	}
 
 	byte _CheckSum = CheckSum(Address,Instruction,Relay);
 	byte NrSends = 4; // number of times the RS232 instruction is sent to the card. Needs to be at least 2 according to the manual!!!
 	for (byte i=1; i <= NrSends; i++){
 		// TODO: Check for other boards that have more than 1 serial connection.
-		#if defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__) 
+		#if defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
 			switch (SerialID) {
 			case 0:
 				Serial.write(CR);
@@ -165,5 +173,5 @@ void K8056Velleman::RS232Instruction(byte Address ,byte Instruction, byte Relay)
 			Serial.write(Relay);
 			Serial.write(_CheckSum);
 		#endif
-	} 
+	}
 }

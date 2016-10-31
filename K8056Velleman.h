@@ -4,7 +4,7 @@
 	Company			:	reptile-addict.nl
 	Version			:	20130421 First release
 						20130422 Made some changes as discussed in: http://arduino.cc/forum/index.php/topic,161877.msg1211201.html#msg1211201
-	
+
 	Description		:	Arduino library to control the Velleman K8056 8-channel relay card thru RS232
 						http://www.reptile-addict.nl/arduino/?page_id=209
 
@@ -31,10 +31,11 @@
 		void EmergencyStop();
 		void Toggle(byte CardAddress, byte Relay);
 		void digitalWrite(byte CardAddress, byte Relay, byte Status);
-		
+		void byteWrite(byte CardAddress, byte Relay);
+
 	  private:
 		byte CheckSum(byte Address, byte Instruction, byte Relay);
-		void RS232Instruction(byte Address, byte Instruction, byte Relay);
+		void RS232Instruction(byte Address, byte Instruction, byte Relay, byte isBinary);
 		byte SerialID;
 	};
 #endif
